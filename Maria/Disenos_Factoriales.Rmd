@@ -1,0 +1,719 @@
+---
+title: "Diseños factoriales"
+author: "María Guzmán Martínez, mguzman@uagro.mx"
+date: "27/11/2023"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: yes
+    toc: yes
+  html_document:
+    number_sections: yes
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  word_document:
+    toc: yes
+toc: yes
+csl: apa.csl
+bibliography: bibliografia.bib
+linkcolor: blue
+citecolor: blue
+urlcolor: blue
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{fancyhdr}
+- \usepackage{amsmath, amsthm, amssymb}
+- \addcontentsline{toc}{section}{Índice de Tablas}
+- \usepackage[spanish]{babel}   # lang: es-ES
+- \decimalpoint   # Para colocar punto en lugar de coma en los n
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+                        echo =T, 
+                     	  message = FALSE,
+                        error = FALSE,
+                      	warning = FALSE,
+                    	  comment = " "
+                    	)
+
+```
+
+
+```{r Librerías, include=FALSE}
+library(gtsummary)
+library("tibble")     # tibble
+library("nortest")    # Pruebas: ad.test, cvm.test, pearson.test, sf.test, lillie.test
+library("ggplot2")    # ggplot
+library("GGally")     # ggpairs
+library("agricolae")  # HSD.test
+
+library("dplyr")      # mutate, select,...
+library("tidyverse")  # %>%
+library("ggforce")    # geom_sina
+library("knitr")
+
+library("agricolae") # yacon
+library("multcomp")  # glht
+
+```
+
+# Introducción
+
+Un diseño experimental se tienen tratamientos y unidades experimentales (UE) a las cuales se les aplicaran los tratamientos,  de acuerdo a como se agrupen o midan las UE se tendrá un tipo de diseño experimental.
+
+Un diseño factorial está compuesto por un conjunto de factores, de los cuales se quiere estudiar su efecto en la variable respuesta.
+
+
+Un diseño factorial se emplea cuando:
+
+- Se quiere conocer el efecto producido por dos o más factores que actúan simultáneamente en un experimento.
+
+
+## Diseños factoriales
+
+En  un diseño de factorial cada factor tiene un número determinado de niveles:
+
+| Factores  | Niveles del factor    |  
+|:---------:|:---------------------:|
+|Factor A   |      a                |       
+|Factor B   |      b                |
+|Factor C   |      c                |
+| $\vdots$  |  $\vdots$             |
+
+donde $a$, $b$, $c$,...  son números enteros.
+
+
+Tomando en cuenta los factores y los niveles de estos, se pueden generar los diferentes diseños factoriales:
+
+|Diseño factorial (DF) | Descripción                                                                   |
+|:---------------------|:------------------------------------------------------------------------------|
+| $n^k$                |DF de $k$ factores: $k$ factores con $n$ niveles por factor                    |
+| $4\times 3\times2$   |DF de $3$ factores: con $4$, $3$, y $2$ niveles respectivamente                |   
+| $2^3\times 4^2$      |DF de $5$ factores: $3$ factores con $2$ niveles y $2$ factores con $4$ niveles|
+
+
+De manera general,la notación para los diseños factoriales queda dada de la siguiente manera:  $(\# niveles)^{\#factores}$.
+
+
+- Los factores y los niveles de los factores, en un diseño experimental, están determinados por los objetivos del investigador; por ejemplo el en diseño factorial $2\times2\times4=2^{2}\times4$, que es equivalente a tener:
+
+| Factores  | Niveles de los factores |  
+|:---------:|:-----------------------:|
+|Factor A   |      4                  |       
+|Factor B   |      2                  |
+|Factor C   |      2                  |
+
+
+## Diseño factorial  $2^k$ completo
+
+Cuando se tiene $k$ factores con dos niveles por factor, se tiene lo que se conoce como diseño factorial $2^k$.
+
+
+## Número de tratamientos
+
+- El número de tratamientos en un diseño factorial, está determinado por la combinación de todos los niveles de los factores que se eligieron para el estudio. 
+
+- Así en un diseño factorial el número de tratamientos a evaluar se obtiene de la multiplicación de los niveles de todos los factores involucrados en el experimento. 
+
+- Por ejemplo, si se tiene el factor $A$ con  $a$ niveles, el factor $B$ con $b$ niveles y el factor $C$ con  $c$ niveles, entonces el experimento va a tener $a \times b \times c$ tratamientos.
+
+
+## Tipos de diseños factoriales
+
+En un diseño factorial, se pueden disponer los tratamientos bajo los esquemas de completamente al azar, bloques completos al azar o cuadrado latino, por mencionar algunos, quedando un diseño experimental de la siguiente manera:
+
+
+- Diseño factorial completamente aleatorio: 
+
+- Diseño factorial en bloques completamente aleatorios
+
+- Diseño factorial encuadrado latino
+
+
+# Diseño factorial completamente aleatorio con 2 factores
+
+En un diseño factorial completamente aleatorio con 2 factores se prueban dos factores bajo un esquema completamente al azar. El modelo estadístico para este diseño se muestra a continuación.
+
+## Modelo
+
+$$
+y_{ijk}=\mu+\alpha_{i}+\beta_{j}+(\alpha\beta)_{ij}+e_{ijk}
+$$
+con $i=1,...,a$; $j=1,...,b$, y $k=1,...,r$.
+
+
+**Índices del modelo**:
+
+- $a$ los número de niveles del factor $A$.
+
+- $b$ los número de niveles del factor $B$. 
+
+- Se tienen $a\times b$ tratamientos en este diseño.
+
+- $r$ el número de peticiones de cada tratamiento.
+
+- $n=abr$ total de observaciones en el experimento.
+
+
+**Términos del modelo**:
+
+- $y_{ijk}$ es la respuesta en la $k$-ésima repetición del $i$-ésimo nivel del factor $A$ y el $j$-ésimo nivel factor $B$
+
+-  $\mu$ es el efecto promedio (media general)
+
+-  $\alpha_{i}$ es el efecto del $i$-ésimo nivel del factor $A$
+
+-  $\beta_{j}$ es el efecto del $j$-ésimo nivel del factor $B$
+
+-  $(\beta\alpha)_{ij}$ es el efecto atribuido a la interacción entre el $i$-ésimo nivel del factor $A$ y $j$-ésimo nivel del factor $B$.
+
+- $e_{ijk}$ es el error aleatorio asociado a $y_{ijk}$.
+
+
+**Supuestos del modelo**: Se asume que los errores del modelo, $e_{ijk}$:
+
+- Son mutuamente independientes
+
+- Tienen varianza constante
+
+- Tienen distribución normal
+ 
+es decir,
+$$
+e_{ijk}\sim N(0,\sigma^{2})
+$$
+
+
+## Estimación de los parámetros
+
+El modelo 
+
+$$
+y_{ijk}=\mu+\alpha_{i}+\beta_{j}+(\alpha\beta)_{ij}+e_{ijk}
+$$
+tiene el siguiente conjunto de parámetros:
+
+- $\mu$
+
+- $\alpha_i$, $i=1,...,a$
+
+- $\beta_j$, $j=1,...,b$
+
+- $(\alpha\beta)_{ij}$, $i=1,...,a$, $j=1,...,b$.
+
+- $\sigma$
+
+Para la estimación de estos parámetros, se consideran las siguientes restricciones:
+
+- $$ \sum_{i=1}^a \alpha_i=0$$
+
+- $$ \sum_{j=1}^b \beta_j=0$$
+
+- $$ \sum_{i=1}^a(\alpha\beta)_{ij}=0$$, para todo $j$
+
+- $$ \sum_{j=1}^b(\alpha\beta)_{ij}=0$$, para todo $i$
+
+La estimación de los parámetros se puede realizar por el método de mínimos cuadrados o por el método de máxima verosimilitd. 
+
+Las estimaciones están dadas por
+
+- 
+$$
+\hat{\mu}=\bar{y}_{...}
+$$
+donde 
+$$
+\bar{y}_{...}=\frac{\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^{r} y_{ijk}}{n}
+$$
+
+- 
+$$
+\hat{\alpha}_{i}=\bar{y}_{i..}-\bar{y}_{...}
+$$
+donde 
+$$
+\bar{y}_{i..}=\frac{\sum_{j=1}^b\sum_{k=1}^{r} y_{ijk}}{br}
+$$
+- 
+$$
+\hat{\beta}_{j}=\bar{y}_{.j.}-\bar{y}_{...}
+$$
+donde 
+$$
+\bar{y}_{.j.}=\frac{\sum_{i=1}^a\sum_{k=1}^{r} y_{ijk}}{ar}
+$$
+- 
+$$
+\widehat{(\alpha\beta)}_{ij}=\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...}
+$$
+donde
+$$
+\bar{y}_{ij.}=\frac{\sum_{k=1}^{r} y_{ijk}}{r}
+$$
+-
+$$
+\hat{\sigma}^2=\frac{\sum\sum\sum e^2_{ijk}}{ab(r-1)}
+$$
+
+
+
+## Pruebas de hipótesis
+
+Contraste de hipótesis del efecto principal del factor A
+
+$$
+H_{0}^A:\alpha_1=\alpha_2=\cdots=\alpha_a=0
+$$
+vs
+$$
+H_{1}^{A}: \text{algún } \alpha_i\neq0
+$$
+
+Contraste de hipótesis del efecto principal del factor B
+
+$$
+H_{0}^{B}:\beta_1=\beta_2=\cdots=\beta_b=0
+$$
+vs
+$$
+H_{1}^{B}: \text{algún } \beta_j\neq0
+$$
+
+Contraste de hipótesis de la interacción BA
+
+$$
+H_{0}^{AB}: (\alpha\beta)_{11}=(\alpha\beta)_{12}=\cdots=(\alpha\beta)_{1b}=(\alpha\beta)_{21}=(\alpha\beta)_{22}=\cdots=(\alpha\beta)_{2b}=\cdots=(\alpha\beta)_{ab}=0
+$$
+vs
+$$
+H_{1}^{AB}: \text{algún } (\alpha\beta)_{ij}\neq0
+$$
+con $i=1,...,a$ y $j=1,...,b$
+
+
+
+## Tabla de análisis de varianza
+
+Para probar los juegos de hipótesis antes señalados, se procede a realiza un análisis de varianza. 
+
+El análisis de varianza (análisis de las diferencias entre tratamientos) está dado de la siguiente manera.
+
+Dado el modelo
+$$
+y_{ijk}=\mu+\alpha_{i}+\beta_{j}+(\alpha\beta)_{ij}+e_{ijk}
+$$
+y tomando en cuenta las estimaciones de los parámetros
+
+$$
+y_{ijk}=\hat{\mu}+\hat{\alpha}_{i}+\hat{\beta}_{j}+\widehat{(\alpha\beta)}_{ij}+e_{ijk}
+$$
+De donde
+
+$$
+y_{ijk}=\hat{\mu}+\hat{\alpha}_{i}+\hat{\beta}_{j}+\widehat{(\alpha\beta)}_{ij}+e_{ijk}
+$$
+es decir,
+$$
+y_{ijk}=\bar{y}_{...}+(\bar{y}_{i..}-\bar{y}_{...})+(\bar{y}_{.j.}-\bar{y}_{...})+(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})+e_{ijk}
+$$
+Despejando para $e_{ijt}$, se tiene
+
+$$
+y_{ijk}-\bar{y}_{...}-(\bar{y}_{i..}-\bar{y}_{...})-(\bar{y}_{.j.}-\bar{y}_{...})-(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})=e_{ijk}
+$$
+Simplificando
+$$
+\begin{aligned}
+e_{ijk}& = y_{ijk}-\bar{y}_{...}-\bar{y}_{i..}+\bar{y}_{...}-\bar{y}_{.j.}+\bar{y}_{...}-\bar{y}_{ij.}+\bar{y}_{i..}+\bar{y}_{.j.}-\bar{y}_{...}\\
+       & = y_{ijk}-\bar{y}_{i..}-\bar{y}_{.j.}-\bar{y}_{ij.}+\bar{y}_{i..}+\bar{y}_{.j.}\\
+       & = y_{ijk}-\bar{y}_{.j.}-\bar{y}_{ij.}+\bar{y}_{.j.}\\
+       & = y_{ijk}-\bar{y}_{ij.}\\
+\end{aligned}
+$$
+Sustituyendo $e_{ijk}=y_{ijt}-\bar{y}_{ij.}$ en 
+
+$$
+y_{ijk}=\bar{y}_{...}+(\bar{y}_{i..}-\bar{y}_{...})+(\bar{y}_{.j.}-\bar{y}_{...})+(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})+e_{ijk}
+$$
+se tiene 
+$$
+y_{ijk}=\bar{y}_{...}+(\bar{y}_{i..}-\bar{y}_{...})+(\bar{y}_{.j.}-\bar{y}_{...})+(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})+(y_{ijk}-\bar{y}_{ij.})
+$$
+De esta última ecuación, se observa que
+$$
+y_{ijk}-\bar{y}_{...}=(\bar{y}_{i..}-\bar{y}_{...})+(\bar{y}_{.j.}-\bar{y}_{...})+(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})+(y_{ijt}-\bar{y}_{ij.})
+$$
+De esta última expresión se obtiene la tabla del análisis de varianza, procediendo de la siguiente manera
+
+$$
+\begin{aligned}
+\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(y_{ijk}-\bar{y}_{...})^2 & = \sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r((\bar{y}_{i..}-\bar{y}_{...})+(\bar{y}_{.j.}-\bar{y}_{...})+(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})+(y_{ijk}-\bar{y}_{ij.}))^2\\
+&=\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(\bar{y}_{i..}-\bar{y}_{...})^2+\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(\bar{y}_{.j.}-\bar{y}_{...})^2+\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})^2+\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(y_{ijk}-\bar{y}_{ij.})^2\\
+& = br\sum_{i=1}^a(\bar{y}_{i..}-\bar{y}_{...})^2+ar\sum_{j=1}^b(\bar{y}_{.j.}-\bar{y}_{...})^2+r\sum_{i=1}^a\sum_{j=1}^b(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})^2+\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(y_{ijk}-\bar{y}_{ij.})^2
+\end{aligned}
+$$
+De esta última expresión se tienen las sumas de cuadrados (SC):
+
+Suma de cuadrados totales:
+$$
+SC(T)=\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(y_{ijk}-\bar{y}_{...})^2
+$$
+
+
+- Suma de cuadrados del factor A: 
+$$
+SC(A)=br\sum_{i=1}^a(\bar{y}_{i..}-\bar{y}_{...})^2
+$$
+- Suma de cuadrados del factor B: 
+$$
+SC(B)=ar\sum_{j=1}^b(\bar{y}_{.j.}-\bar{y}_{...})^2
+$$
+Suma de cuadrados de la interacción de los facores A y B: 
+$$
+SC(AB)=r\sum_{i=1}^a\sum_{j=1}^b(\bar{y}_{ij.}-\bar{y}_{i..}-\bar{y}_{.j.}+\bar{y}_{...})^2
+$$
+
+
+Suma de cuadrados del error: 
+$$
+SC(E)=\sum_{i=1}^a\sum_{j=1}^b\sum_{k=1}^r(y_{ijk}-\bar{y}_{ij.})^2
+$$
+Note que 
+$$
+SC(E)=SC(T)-SC(A)-SC(B)-SC(AB)
+$$
+
+
+
+Análisis de varianza
+
+|Fuente de variación|Grados de libertad|Suma de Cuadrados|Cuadrados medios           |           F calculada          |
+|-------------------|------------------|-----------------|---------------------------|--------------------------------|
+|Factor A           |$v_a=a-1$         |  $SC(A)$        |$CM(A)=\frac{SC(A)}{v_a}$  |$F_{Cal}(A)=\frac{CM(A)}{CM(E)}$|
+|                   |                  |                 |                           |                                |
+|Factor B           |$v_b=b-1$         |  $SC(B)$        |$CM(B)=\frac{SC(B)}{v_b}$  |$F_{Cal}(B)=\frac{CM(B)}{CM(E)}$|
+|                   |                  |                 |                           |                                | 
+|Interacción AB     |$v_{ab}=v_{a}v_{b}$| $SC(AB)$       |$CM(AB)=\frac{SC(AB)}{v_{ab}}$| $F_{Cal}(AB)=\frac{CM(AB)}{CM(E)}$|
+|                   |                   |                |                           |                                |
+|Error              |$v_e=ab(r-1)$     | $SC(E)$         |$CM(E)=\frac{SC(E)}{v_e}$  |                                |
+|                   |                   |                |                           |                                |
+|Total              |$v_t=n-1$         | $SC(T)$         |                           |                              |
+
+
+Se esta tabla, se sabe que:
+
+- Existe efecto del factor A, si se rechaza $H_{0}^A$, es decir, si
+$$
+F_{Cal}(A)> F(v_a,v_{e},\alpha)
+$$
+- Existe efecto del factor B, si se rechaza $H_{0}^B$, es decir, si
+$$
+F_{Cal}(B)> F(v_b,v_{e},\alpha)
+$$
+
+- Existe efecto de la interacción AB, si se rechaza $H_{0}^{AB}$, es decir, si
+$$
+F_{Cal}(AB)> F(v_{ab},v_{e}, \alpha)
+$$
+
+Si se rechaza algunas de las hipótesis nulas, $H_{0}^A$, $H_{0}^B$, o $H_{0}^{AB}$, se procede a realizar comparaciones pareadas.
+
+## Comparaciones múltiples de promedios
+
+
+
+### Comparaciones múltiples factor A
+
+
+Si  la prueba F, rechaza la hipótesis nula para el Factor A,  lo siguiente es determinar que parejas de $\alpha_{i}$ son estadísticamente diferentes; teniendo el siguiente juego de hipótesis:
+
+$$
+H_{0}^{A}: \alpha_{i}=\alpha_{j} 
+$$
+vs
+$$
+H_{1}^{A}: \alpha_{i} \neq \alpha_{j} 
+$$
+el estadístico de prueba está dado por
+
+$$
+t_{ij}=\frac{\bar{y}_{i..}-\bar{y}_{j..}}{\hat{\sigma}\sqrt{\frac{2}{br}}}
+$$
+donde $\bar{y}_{i..}$ es la media del 
+Luego se rechaza  $H_{0}^{A}$ si
+
+$$
+|t_{ij}|>t_{\alpha/2}(v_r)\hat{\sigma}\sqrt{\frac{2}{br}}
+$$
+
+donde 
+$$
+t_{\alpha/2}(v_r)\hat{\sigma}\sqrt{\frac{2}{br}}
+$$
+es la diferencia mínima significativa (DMS) cuando se tiene el mismo número de repeticiones 
+
+### Comparaciones múltiples factor B
+
+Si  la prueba F, rechaza la hipótesis nula del Factor B,  lo siguiente es determinar que parejas de $\beta_{i}$ son estadísticamente diferentes; el juego de  hipótesis está dado por
+
+$$
+H_{0}^{B}:\beta_{i}=\beta_{j} 
+$$
+vs
+$$
+H_{1}^{B}: \beta_{i} \neq \beta_{j} 
+$$
+el estadístico de prueba está dado por
+
+$$
+t_{ij}=\frac{\bar{y}_{.i.}-\bar{y}_{.j.}}{\hat{\sigma}\sqrt{\frac{2}{ar}}}
+$$
+Luego se rechaza  $H_{0}^{B}$ si
+
+$$
+|t_{ij}|>t_{\alpha/2}(v_r)\hat{\sigma}\sqrt{\frac{2}{ar}}
+$$
+
+donde 
+$$
+t_{\alpha/2}(v_r)\hat{\sigma}\sqrt{\frac{2}{ar}}
+$$
+es la diferencia mínima significativa (DMS) cuando se tiene el mismo número de repeticiones 
+
+
+Para comparaciones múltiples ver:
+
+- Capítulo 4 [@Castillo2008]
+
+- Capítulo 2 [@Wu_Hamada2021]
+
+- Capítulo 4, [@Dean1999]
+
+
+
+
+# Apéndice A
+
+## Definiciones
+
+
+-   **Factor**: es una variable y se quiere estudiar su efecto en la
+    variable respuesta.%de interés controlada hasta ciento punto por el
+    experimentador, de la que se desea estudiar sus efectos en una o
+    varias respuestas.
+
+-   **Nivel**: modalidad específica dentro del factor.
+
+-   **Tratamiento**: niveles o combinación de niveles que serán sujetos a
+    experimentación.
+
+-   **Unidad experimental (UE)**: unidad mínima de material a la que se le
+    aplica un tratamiento. Las UE deben de ser homogéneas. La UE puede
+    ser una parcela, una maceta, una planta, un caldo de cultivo, etc.
+
+-   **Unidad de muestreo**: una fracción de la unidad experimental.
+
+-   **Replica (repeticiones)**: Si se asigna un tratamiento a cuatro unidades experimentales
+    diferentes, y se toma una medición por unidad experimental, entonces
+    se tiene cuatro réplicas del tratamiento. Note que las cuatro
+    observaciones son independientes.
+  
+- **Efecto principal**: Indica la contribución que cada factor tiene sobre las variables respuesta. LA contribución se mide evaluando el cambio que se produce enla respuesta en cada nivel del factor.
+
+- **Interacción de dos factores**: Indica la relación o dependencia entredos o más factores.
+
+- **Aleatorización**: La aleatorización garantiza un orden en la aplicación de los  tratamientos a las UE, de tal forma que, cada UE tiene la misma oportunidad de ser asignada a cualquier tratamiento, controla la confusión que puede reflejarse en la variable repuesta, entre lo que la UE por si misma aporte y lo que el tratamiento aporte. La aletorización garantiza lo anterior si se supone que las UE son prácticamente homogéneas en su respuesta, antes de ser tratadas. En caso contrario habrá que considerar un factor de bloqueo para garantizar que toas las UE sean homogéneas antes de aplicarles un tratamiento.
+
+- **La aleatorización** es la piedra angular en la cual se fundamenta los diseños de experimentos. La aleatorización ayuda a eliminar los efectos de factores extraños que pudieran estar presentes. La asignación de los tratamientos a las UE es al azar; de esta forma, todas las UE tiene la misma probabilidad de recibir un determinado tratamiento. El orden en que se realizan los ensayos individuales es al azar.
+    
+- **Bloque**: Conjunto de unidades experimental agrupadas de acuerdo a su homogeneidad en la respuesta antes de ser tratadas. En otras palabras, es  conjunto de unidades experimentales que tienen características similares o muy parecidas entre sí (homogéneas) pero que difieren de las unidades experimentales que conforman otros bloques.
+
+    
+![Réplicas](C://Documetos MGM_OS_Dell//Documentos Maria_Dell//Cursos_Taller_Impartidos//Curso-Taller_Guadalajara_2023//replica.png)
+
+-   **Mediciones repetidas**: a una unidad experimental se le asigna un
+    tratamiento, y el dato es tomado en cuatro tiempos diferentes; aquí las
+    observaciones son dependientes
+    
+
+
+
+# Apéndice B
+
+Diseños experimentales.
+
+## Diseño completo al azar
+
+
+El diseño completamente  al azar se emplea cuando las unidades experimentales son homogéneas. Los tratamientos se asignan a las unidades experimentales mediante un mecanismo aleatorio. Todos  los tratamientos pueden tener el mismo número de repeticiones, o ser diferente.
+
+El modelo está dado por
+$$
+y_{ij}=\mu+\tau_{i}+e_{ij}
+$$
+donde 
+$$
+\epsilon_{ij}\sim N(0,\sigma^2)
+$$
+
+## Diseño de lo bloques 
+
+Un diseño de bloques es apropiado cuando el objetivo del experimento es
+comparar los efectos de diferentes tratamientos en una serie de
+condiciones diferentes. Las unidades experimentales se agrupan en
+conjuntos de tal manera que dos unidades experimentales del mismo
+conjunto son similares y pueden medirse en condiciones experimentales
+similares, pero dos unidades experimentales de conjuntos diferentes
+pueden dar lugar a mediciones muy diferentes, incluso cuando se asignan
+al mismo tratamiento. Los conjuntos de unidades experimentales similares
+se denominan bloques, y las condiciones que varían de un bloque a otro
+forman los niveles del factor de bloqueo. El análisis de un diseño de
+bloques implica la comparación de los tratamientos aplicados a las
+unidades experimentales dentro del mismo bloque. Así, la intención del
+bloque es evitar que grandes diferencias en las unidades experimentales
+enmascaren las diferencias entre los niveles del factor de tratamiento,
+permitiendo al mismo tiempo que los tratamientos se examinan bajo
+diferentes condiciones experimentales [@Dean1999].
+
+En la agricultura un factor de bloqueo puede ser el tipo de suelo, por
+ejemplo los experimentadores agrícolas saben que las parcelas cercanas
+en un campo son iguales, mientras que las alejadas no lo son. De esta
+manera podemos entender que un factor de bloqueo es un factor de ruido,
+que puede afectar las conclusiones del experimento y que debe de ser
+controlado.
+
+-   $b$ es el número de bloques, es decir, el número de grupos de
+    unidades experimentales.
+
+-   $k$ es el tamaño de los bloques, que en este caso es el número de UE
+    en cada uno de los bloques.
+
+-   $v$ es el número de tratamientos, es decir, el número de niveles del
+    factor que se desea estudiar.
+
+-   $r_{i}$ es el número de veces que se observa el tratamiento $i$
+
+-   $n_{hi}$ el número de veces que el tratamiento $i$ es observado en
+    el bloque $h$.
+
+Una vez que se determino el tamaño del bloque, $k$, y las unidades
+experimentales han sido agrupadas en cada uno de los bloques, lo que
+sigue es asignar los tratamientos a cada una de las unidades
+experimentales. La peor asignación de los tratamientos, es asignar un
+solo tratamiento a todas las unidades experimentales de un bloque; es
+decir, que un solo tratamiento este presente en cada uno de los bloques.
+Esta asignación es incorrecta, ya que no permite que el análisis
+distinga entre las diferencias en los bloques y las diferencias entre
+los tratamientos. En este caso se dice que los efectos de los factores
+de tratamientos y los efectos del factor de bloqueo están confundidos.
+
+La mejor asignación es cuando se asigna cada tratamiento al mismo número
+de UE por bloque. Esto se pude lograr cuando el tamaño del bloque, $k$,
+es múltiplo del número de tratamientos, $v$. A estos diseños se les
+conoce como diseños de bloques completos, y el el caso cuando $k=v$ se
+les conoce como diseños de bloques completamente aleatorios, o
+simplemente como diseños de bloques aleatorios. En este sentido un
+diseño de bloques completamente aleatorio cuando el tamaño del bloque es
+igual al número de tratamientos, $k=v$; mientras que se dará el nombre
+de bloques completamente generales cuando el tamaño del bloque es un
+múltiplo del número de tratamientos, $v$. Si el tamaño del bloque no es
+un múltiplo de $v$, entonces se tiene lo que se conoce como diseño de
+bloques incompletos. En ocasiones puede ocurrir que $k<v$ o $k>v$.
+
+Diseño de bloques completamente aleatorio:
+
+Un diseño de bloques completamente aleatorio es un diseño con $v$
+tratamientos (que pueden ser combinaciones de factores de tratamientos),
+con $n=bv$ unidades experimentales agrupadas en $b$ bloques de $k=v$
+unidades, de tal manera que las unidades experimentales dentro de un
+bloque sean iguales y las unidades experimentales entre bloques sean
+sustancialmente diferentes. A las $k=v$ unidades experimentales dentro
+de cada bloque se les asigna aleatoriamente un tratamiento; así cada
+tratamiento aparece una sola vez en cada uno de los bloques.
+
+El diseño de bloques completamente al azar, tiene las siguientes
+características:
+
+-   Es útil cuando cuando existe un factor de confusión que puede
+    influir en los resultados del experimento, y dicho factor de
+    confusión no se puede sustraer del experimento.
+
+-   Los tratamientos a evaluar se alojan en unidades agrupadas en
+    bloques.
+
+-   Se utilizan los bloques para absorber el máximo de grado de
+    variabilidad del material experimental.
+
+-   En cada uno de los bloques del experimento, están presentes todos
+    los tratamientos a evaluar. Por esta razón al diseño se le conoce
+    como bloques completos.
+
+-   El tamaño del bloque es igual al número de tratamientos a probar.
+
+-   La disposición de los tratamientos dentro de cada uno de los bloques
+    se hace mediante un mecanismo aleatorio
+
+-   Los bloques se disponen en forma perpendicular al factor de
+    confusión.
+
+-   Cada uno de los bloques representa una repetición de cada uno de los
+    tratamientos a evaluar. El número de bloques representa el número de
+    repeticiones de los tratamientos.
+
+
+Un diseño general de bloques completos, es un diseño con $v$
+tratamientos (que pueden ser la combinaciones factoriales de
+tratamientos) y con $n=bv(k/v)=bk$ unidades experimentales agrupadas en
+$b$ bloques de $k=vs$ unidades experimentales, de tal manera que las
+unidades dentro de un bloque son iguales y las unidades experimentales
+en diferentes bloques son sustancialmente diferentes. Las $k=vs$
+unidades experimentales dentro de cada bloque se les asigna
+aleatoriamente los $v$ tratamientos, de modo que a cada tratamiento se
+le asignas $s=k/v$ unidades por bloque. Así cada tratamiento aparece
+$k/v$ veces en cada bloque y $r=bs$ veces en el diseño.
+
+A continuación se presenta el diseño de bloques completo general, en
+donde se tienen $s>1$ observaciones de cada tratamiento en cada bloque.
+En este modelo se tiene los niveles del tratamiento más de una vez en
+cada bloque, dando suficientes grados de libertad para estimar la
+interacción block$\times$treatment
+
+Modelo de interacción bloque-tratamiento: 
+
+$$
+y_{hit}=\mu+\theta_{h}+\tau_{i}+(\theta\tau)_{hi}+e_{hit}
+$$
+
+Donde:
+
+- Observaciones, $t=1,...,s$, 
+
+- Bloques, $h=1,...,b$, 
+
+- Tratamientos, $i=1,..,v$.
+
+-  $\mu$ es una constante
+
+-  $\theta_{h}$ es el efecto del h-ésimo bloque
+
+-  $\tau_{i}$ es el efecto del i-ésimo tratamiento
+
+-  $(\theta\tau)_{hi}$ es la interacción del tratamiento $i$ y el bloque $h$
+
+-  $y_{hit}$ representa la $t$ medición del tratamiento $i$ observado en el bloque $h$.
+
+- $e_{hit}$ es el error aleatorio asociado.
+
+
+# Bibliografía
+
+
+
+
+
