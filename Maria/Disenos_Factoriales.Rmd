@@ -77,7 +77,7 @@ Un diseño factorial se emplea cuando:
 
 ## Diseños factoriales
 
-En  un diseño de factorial cada factor tiene un número determinado de niveles:
+En un diseño factorial cada factor tiene un número determinado de niveles:
 
 | Factores  | Niveles del factor    |  
 |:---------:|:---------------------:|
@@ -171,7 +171,7 @@ con $i=1,...,a$; $j=1,...,b$, y $k=1,...,r$.
 
 -  $\beta_{j}$ es el efecto del $j$-ésimo nivel del factor $B$
 
--  $(\beta\alpha)_{ij}$ es el efecto atribuido a la interacción entre el $i$-ésimo nivel del factor $A$ y $j$-ésimo nivel del factor $B$.
+-  $(\alpha\beta)_{ij}$ es el efecto atribuido a la interacción entre el $i$-ésimo nivel del factor $A$ y $j$-ésimo nivel del factor $B$.
 
 - $e_{ijk}$ es el error aleatorio asociado a $y_{ijk}$.
 
@@ -445,7 +445,7 @@ el estadístico de prueba está dado por
 $$
 t_{ij}=\frac{\bar{y}_{i..}-\bar{y}_{j..}}{\hat{\sigma}\sqrt{\frac{2}{br}}}
 $$
-donde $\bar{y}_{i..}$ es la media del 
+
 Luego se rechaza  $H_{0}^{A}$ si
 
 $$
@@ -494,7 +494,6 @@ Para comparaciones múltiples ver:
 - Capítulo 2 [@Wu_Hamada2021]
 
 - Capítulo 4, [@Dean1999]
-
 
 
 
