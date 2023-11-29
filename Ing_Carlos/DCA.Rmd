@@ -1,0 +1,163 @@
+---
+title: "Diseño Aleatorio simple"
+author: "Carlos David"
+date: "2023-11-11"
+output: pdf_document
+---
+```{r}
+knitr::opts_chunk$set(
+comment="->",
+echo=TRUE, # Para mostrar el codigo R en la salida
+# results = 'asis',
+warning = FALSE,
+error = FALSE,
+message = FALSE
+)
+```
+
+
+# Librerias. 
+```{r setup, include=TRUE}
+library(multcomp)
+library(agricolae) #SNK, DHS(Tukey), Duncan, LSD
+library(faraway) #Los datos están aquí
+library(car) #Levene, Bartlett
+library(nortest) #Pruebas de normalidad
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(tinytex) # Texto latex
+```
+
+## Ruta de trabajo.
+```{r}
+setwd("C:/Users/carlos/OneDrive - uagro.mx/Escritorio/DCA-CDCM")
+```
+
+# Base de datos.
+```{r , include=TRUE}
+DCA <-read_excel("DCA.xlsx")
+attach(DCA)
+#data(DCA);    DCA
+#View(DCA)
+
+```
+# Análisis Exploratorio.
+```{r , include=TRUE}
+
+PS<-as.numeric(PS)
+mean(PS)
+sd(PS)
+var(PS)
+tapply(PS,Hibridos, mean)
+tapply(PS,Hibridos, var)
+class(PS)
+
+boxplot(as.numeric(PS)~Hibridos,xlab="Híbridos", ylab="PS", data=DCA, col=3:8, main="")
+
+```
+
+# Estimación. 
+```{r, include=TRUE}
+#--------------------------------------------------------------------------#
+#--------------------------------------------------------------------------#
+
+g <- lm(PS ~ Hibridos, DCA)
+
+#H0: Los efectos de los tratamientos en la variable respuesta son iguales a cero 
+#H0: Las medias de la variable respuesta de los tratamientos son iguales 
+
+g.av=anova(g); g.av    # Importante en el curso de DE
+summary(g)             # Importante en el curso de RL
+
+# Una curiosidad
+modelo <- aov(PS ~ Hibridos, DCA); model.tables(modelo,"mean")
+```
+# Verificacion de los supuestos.
+
+```{r, include=TRUE}
+#--------------------------------------------------------------------------#
+
+#--------------------------------------------------------------------------#
+# H0: Los errores tienen DN vs 
+# H1: Los errores NO tienen DN
+ad.test(g$res)
+shapiro.test (g$res)
+cvm.test(g$res)
+lillie.test(g$res)
+pearson.test(g$res)
+sf.test(g$res)
+```
+
+```{r, include=TRUE}
+qqnorm(g$res,xlab="Cuantiles teóricos",ylab="Residuales estandarizados",main="")
+qqline(g$res, col="blue")
+```
+
+```{r}
+h1<-hist(g$res,col="gold",xlim=6*c(-1,1))    # Modificar el 6 de acuerdo a los valores de los residuos
+normal.freq(h1,col="blue")
+```
+
+```{r, include=TRUE}
+# H0:Las varianzas de los tratamientos son iguales vs
+# H1:Las varianzas de los tratamientos NO son iguales
+leveneTest(g$res,Hibridos)
+bartlett.test(g$res,Hibridos)
+fligner.test(g$res,Hibridos)
+```
+
+```{r, include=TRUE}
+# Los errores son independientes
+plot(g$fit,g$res,xlab="Predichos",ylab="Residuos",main="")
+plot(jitter(g$fit),g$res,xlab="Fitted",ylab="Residuos",main="Movidos")
+
+#Box.test(resid(mod4,lag=1,type="pearson"),fitdf = 0)
+```
+
+```{r, include=TRUE}
+#--------------------------------------------------------------------------#
+#- Comparaciones multiples -#
+#--------------------------------------------------------------------------#
+
+gaov<-aov(as.numeric(PS)~Hibridos,data=DCA);gaov
+#Prueba de Tukey: Honest Significative Difference
+
+CompHSD=HSD.test(gaov, "Hibridos", group=TRUE, main="PS");  CompHSD
+bar.group(CompHSD$groups,   ylim=c(0,77),density=4,col="blue",border="red")
+title(cex.main=0.8,main="",xlab="Híbridos", ylab="PS")
+```
+
+```{r, include=TRUE}
+#Prueba de Duncan
+CompDun=duncan.test(gaov, "Hibridos", main="PS")
+bar.group(CompDun$groups,ylim=c(0,77),density=4,border="blue")
+title(cex.main=0.8,main="",xlab="Híbridos", ylab="PS")
+```
+
+```{r, include=TRUE}
+#Prueba LSD
+CompLSD=LSD.test(gaov, "Hibridos", p.adj="bonferroni", main="PS")
+bar.group(CompLSD$groups,ylim=c(0,77),density=4,border="blue")
+title(cex.main=0.8,main="",xlab="Híbridos", ylab="PS")
+```
+
+```{r, include=TRUE}
+#Prueba de Student-Newman-Keuls
+CompSNK=SNK.test(gaov, "Hibridos", main="PS")
+bar.group(CompSNK$groups,ylim=c(0,77),density=4,border="blue")
+title(cex.main=0.8,main="",xlab="Híbridos", ylab="PS")
+```
+
+```{r, include=TRUE}
+#Prueba de Scheffe
+Compscheffe=scheffe.test(gaov, "Hibridos", main="PS")
+bar.group(Compscheffe$groups,ylim=c(0,77),density=4,border="blue")
+title(cex.main=0.8,main="",xlab="Híbridos", ylab="PS")
+```
+
+
+
+
+
+

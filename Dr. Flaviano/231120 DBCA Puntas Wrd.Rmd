@@ -1,0 +1,360 @@
+---
+title: "Elaboracion de un reporte"
+author: "Flaviano Godínez Jaimes"
+date: "20/11/2023"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  comment="->",
+  echo=T,  # se muestra el código R en la salida
+  error = F,
+  warning = F,
+  message = F)
+```
+
+# Librerias necesarias
+
+```{r}
+library("rmarkdown")
+library(multcomp)     # Multiple comparisons of means in AN(C)OVA: Dunett
+library(agricolae)    #SNK, DHS(Tukey), Duncan, LSD
+library(car)          # Diagnosticos y leveneTest
+library(nortest)      #Pruebas de normalidad
+library(tseries)      # Jarque-Bera
+library("pander")
+```
+
+
+# Diseño en bloques completos al azar
+# Ejemplo 1. Puntas
+
+Se desea determinar si cuatro diferentes puntas producen diferentes lecturas de una maquina de prueba de dureza. El experimentador ha decidido obtener cuatro observaciones para cada punta. Para remover la variabilidad entre placas del error experimental se probó cada punta una sola vez en cada una de las placas (Diseño en bloques al azar). La respuesta observada es en la escala C de dureza de Rockwell menos 40.
+
+```{r}
+setwd("/Users/flaviano/Documents/UAG 2012/Cursos/Curso MCAyGL/MCAyGL 2021/Rmd DE")
+datos<-read.csv("Ejercicio1 de DBA.csv")  
+datos
+summary(datos)
+names(datos)  # Nombres de las variables
+attach(datos)
+```
+
+## Analisis exploratorio
+
+```{r}
+MDureza=mean(Dureza);  round(MDureza, 2);     VDureza=var(Dureza);   round(VDureza, 2)
+MPunta = tapply(Dureza, Punta, mean); MPunta=round(MPunta, 2)
+VPunta = tapply(Dureza, Punta, var); VPunta=round(VPunta, 2)
+MPlaca = tapply(Dureza, Placa, mean); MPlaca=round(MPlaca, 2)
+VPlaca = tapply(Dureza, Placa, var);  VPlaca=round(VPlaca, 2)
+
+cbind(MPunta, VPunta)
+cbind(MPlaca, VPlaca)
+
+```
+
+```{r}
+colBlq <- c("tomato", "purple","pink","gold")
+colPta <- c("cyan", "royalblue","steelblue","blue")
+boxplot(Dureza ~ Placa, col = colBlq,  main="Dureza")
+boxplot(Dureza ~ Punta, col = colPta,  main="Dureza")
+
+png("FDBCAPla.png")
+boxplot(Dureza ~ Placa, col = colBlq,  main=" ")
+dev.off()
+
+png("FDBCAPta.png")
+boxplot(Dureza ~ Punta, col = colPta,  main=" ")
+dev.off()
+```
+
+* El modelo es aditivo (Las medias tienen la misma tendencia)
+* No hay interacción (Las medias tienen la misma tendencia)
+* Las medias la Punta 4 son las mayores sin importar la Placa.
+* El cambio en la dureza es el mismo en las placas? Y en las puntas?
+
+```{r}
+interaction.plot(Punta, Placa, Dureza, lty=1, lwd=2, col =colBlq,  main="")
+interaction.plot(Placa, Punta, Dureza, lty=1, lwd=2, col = colPta, main="")
+```
+
+```{r}
+# Aleatorización 
+# 4 Tratamientos y 4 bloques
+trt<-c("P1","P2","P3","P4")
+outdesign <-design.rcbd(trt, 4, serie=1, seed = 986, kinds = "Wichmann-Hill") # seed = 986
+outdesign
+```
+
+*  Se usan 16 UE.
+* La columna uno y *plots*  no importan.
+*  *block* indica el  bloque (Placa). 
+*  En la Placa 1 (P1) los tratamientos (puntas) se prueban en el orden 1, 4, 2 y 3. 
+*  En la Placa 2 (P2) los tratamientos (puntas) se prueban en el orden 3, 2, 4 y 1. 
+*  En la Placa 3 (P3) los tratamientos (puntas) se prueban en el orden 1, 3, 2 y 4. 
+*  En la Placa 4 (P4) los tratamientos (puntas) se prueban en el orden 4, 3, 2 y 1. 
+
+# Reporte
+La media general de la dureza fue 9.62 U con una varianza muestral de 0.09 $U^2$. La punta 1 tuvo media de la dureza de 9.57 U, la punta 2 de 9.60 U, la punta 3 de 9.45 U y la punta 4 de 9.88 U.
+
+La placa 4 tuvo la mayor media de la dureza (9.95 U) y la placa 1  la menor media (9.40 U).
+
+|	Punta |	Media          |   Varianza    | 
+|-------|----------------|---------------|
+| General|   9.62         |   0.09        | 
+| 	1	 	|   9.57         |   0.10        | 
+| 	2	 	|   9.60         |   0.09        | 
+| 	3	 	|   9.45         |   0.04        | 
+| 	4	 	|   9.88         |   0.08        |
+
+|	Placa |	Media    |   Varianza    | 
+|-------|----------------|---------------|
+|  1  | 9.40  | 0.05 |
+|  2  | 9.43  | 0.02 |
+|  3  | 9.72  | 0.05 |
+|  4  | 9.95  | 0.04 |
+
+# Postulación del modelo
+
+Modelo estadístico (Diseño en Bloques al Azar Completo)
+
+
+* La variable respuesta es la dureza
+* Hay un Factor de interés: Punta que tiene cuatro niveles o tratamientos 1, 2, 3 y 4.
+* Hay cuatro Bloques que corresponden a las Placas que son muy variables (gradiente de variación).
+* El modelo es balanceado (el numero de repeticiones es el mismo)  y completo. 
+* La aleatorización es importante!!! Como se hizo?
+
+$$
+\begin{eqnarray*}
+Y_{ij}&=& \mu + \tau_i + \beta_j + \varepsilon_{ij} \quad \; \varepsilon _{ij}\sim  IID N(0,\sigma^{2})\\
+i &=& 1,2,3,4; \quad j=1,2,3,4. 
+\end{eqnarray*}
+$$
+
+$Y_{ij}$ es la dureza de la punta $i$ en la placa $j$; $\mu$ es la media general de la dureza, $\mu_{i}$ es la media de la dureza de la punta $i$, $\tau_{i}$ es el efecto de la punta $i$ en la dureza, $\beta_j$ es el efecto de la placa $j$ en la dureza y $\varepsilon_{i j}$ es el error aleatorio. 
+
+El modelo supone que los errores aleatorios son independientes y tienen distribución normal con media cero y varianza constante, $\sigma^{2}$. 
+
+Las hipótesis a probar son
+
++ $\mathrm{H}_{0}$ : No hay efecto de la punta en la dureza.
+
+$$
+H_{0}: \tau_{1}=\tau_{2}=\cdots=\tau_{4}=0
+$$
+
++ $\mathrm{H}_{1}$ : Hay efecto de la punta en la dureza.
+
+$$
+H_{1}: \text { Al menos un } \tau_{i} \neq 0
+$$
+Que son equivalentes a
+
++ $\mathrm{H}_{0}:$ Las medias de la dureza de las puntas  son iguales.
+
+$$
+H_{0}: \mu_{1}=\mu_{2}=\cdots=\mu_{4}
+$$
++ $\mathrm{H}_{0}$ : Las medias de la dureza de las punta *NO* son iguales.
+
+$$
+H_{1}: \text { Al menos una } \mu_{i} \neq 0
+$$
+
+## Ajuste del modelo
+
+Los parámetros se estiman usando el paquete estadístico R. Implícitamente se usa el Método de Mínimos Cuadrados o el de Máxima Verosimilitud.
+
+Se usa la función lm (linear model) que busca explicar la Dureza con los efectos de placa y punta.
+
+```{r}
+g <- lm(Dureza ~ Placa+Punta, data=datos)
+
+pander(summary(g))    #  summary table
+pander(anova(g))      #  anova table
+```
+
+Antes de interpretar la salida del ANOVA se deben verificar el cumplimiento de los supuestos del modelo: Independencia, Normalidad y Varianza constante.
+
+## Verificación de los supuestos del modelo para el DBCA 
+
+### Independencia de los errores 
+
+* La independencia se construye desde el diseño y realización del experimento. 
+Se cumple el supuesto de Independencia de los errores (porque **el investigador es bueno** y) los puntos no forman algún patrón, es decir, están distribuidos aleatoriamente. 
+
+### Normalidad de los errores 
+
+* Hipótesis
+ i) $\mathrm{H}_0$ Los errores tienen distribución Normal      
+ ii) $\mathrm{H}_{1}$ Los errores no tienen distribución Normal 
+
+
+* Gráfica Normal cuantil. 
+  + Hay distribución Normal si la recta tiene una pendiente de 45 grados y los puntos caen cerca a la diagonal en el centro, aunque en los extremos se separen un poco
+  + No hay distribución Normal si la recta NO tiene una pendiente de 45 grados o los puntos se separan de la diagonal.
+
+
+```{r}
+qqnorm(g$res,xlab="Cuantiles teoricos",ylab="Residuos estandarizados",main="")
+qqline(g$res, col="blue")
+
+car::qqPlot(g, id.n=3)         
+```
+
+
+```{r}
+# H0: Los errores tienen DN vs 
+# H1: Los errores NO tienen DN
+  stats::shapiro.test(g$res)        # n<50
+nortest::lillie.test(g$res)        # n>=50    
+nortest::ad.test(g$res)
+nortest::cvm.test(g$res)
+nortest::pearson.test(g$res)    
+nortest::sf.test(g$res)       
+tseries::jarque.bera.test(g$res)    
+```
+
+**Todos los valores p son mayores a 0.05**
+
+El modelo ajustado para la dureza cumple el supuesto de  normalidad de los errores (Anderson-Darling p=0.62;  Shapiro-Wilk p=0.34;  Cramer-von Mises p=0.42;  Kolmogorov-Smirnov p=0.62;  Pearson chi-square p=0.21; Shapiro Francia p=0.39) 
+
+### Homegeneidad de varianzas
+
+* Hipótesis
+ i) $\mathrm{H}_0$ Las varianzas de la dureza de los puntas son iguales
+ ii) $\mathrm{H}_{1}$ Las varianzas de la dureza de los puntas no son iguales
+ 
+Hay homegeneidad de varianzas de los errores  si los puntos no forman algún patrón como puede ser una curva, una recta o un triángulo.
+
+
+```{r}
+plot(g$fit,g$res,xlab="Valores esperados",ylab="Residuales",main="")
+# plot(jitter(g$fit),g$res,xlab="Fitted",ylab="Residuals",main=" ")
+```
+
+
+```{r}
+# H0:Las varianzas de la dureza de los puntas son iguales vs
+# H1:Las varianzas de la dureza de los puntas NO son iguales
+stats::bartlett.test(g$res, Punta)   # Confiable si hay Normalidad
+  car::leveneTest(g$res, Punta)
+stats::fligner.test(g$res, Punta)
+```
+
+**Todos los valores p son mayores a 0.05**
+
+* No existe evidencia con un $\alpha=.05$ que indique que las varianzas de la dureza de los puntas sean diferentes (Bartlett $K^2(3) = 1.01$, $p = 0.80$).
+* Las varianzas de la dureza de los puntas son estadísticamente iguales (Bartlett $K^2(3) = 1.01$, $p = 0.80$).
+
+
+
+```{r}
+layout(matrix(1:4,2,2))
+plot(g)
+```
+
+# Reporte
+
+El modelo ajustado para la dureza, cumple los supuestos de Independencia,  normalidad (Shapiro-Wilk p=0.37) y homogeneidad de varianza (Bartlett p=2.25, Levene p=0.53, Fligner-Killeen p=0.67)  porque todos los valores p son mayores a 0.05. 
+
+## interpretación del  modelo ajustado
+
+* Se rechaza $H_{0}: \mu_{P1}= \mu_{P2}= \mu_{P3}=\mu_{P4}.$
+
+* Las medias de la dureza de las puntas *NO*  son estadísticamente iguales  ($F_{(3, 9)} =14.4, \; p < 0.001$).
+* Hay efecto de las puntas en la dureza ($F_{(3, 9)} =14.4, \; p < 0.001$).
+
+* Se rechaza $H_{0}:\beta_{1}=\beta_{2}=\beta_{3}=\beta_{4}.$ (Sorpresa? Es correcto?).
+*  Las medias de la dureza de los placas no son estadísticamente iguales $(F_c(3, 9) =30.9, \quad p< 0.001).$ 
+( No es correcto hacer esta prueba!!!).}
+
+
+```{r}
+anova(g);           
+```
+
+Coeficiente de determinación}  El 60\% de la variación en la produccion de penicilina es explicada por el modelo ($R^{2}= 0.5964$).
+
+```{r}
+  summary(g)
+```
+
+** Después de rechazar $H_0$ interesa determinar que punta tiene la mejor dureza.**
+
+## Comparaciones multiples
+
+### Prueba de Tukey
+* La prueba de Tukey usa la diferencia  mínima significativa honesta (DMSH = $0.2081$) que usa los rangos estudentizados para determinar que pares de medias son estadísticamente diferentes. Cualquier par de medias que es mayor al DMSH se declaran como diferentes. 
+
+# Reporte 
+
+* La prueba de Tukey identifica dos grupos de medias de la dureza de las puntas estadísticamente diferentes.
+* El grupo con la mayor media de la dureza contiene solo a la Punta 4. 
+* El grupo con las menores medias de la dureza contiene a las Puntas 2, 1 y 3. 
+
+|     |Dureza | groups |
+|----------|-------|-----|
+|Punta 4  | 9.875  |    a |
+|Punta 2  | 9.600  |    b |
+|Punta 1  | 9.575  |    b |
+|Punta 3  | 9.450  |    b |
+
+
+```{r}
+gaov<-aov(Dureza ~ Placa+Punta, data=datos)
+
+#Prueba de Tukey: Honest Significative Difference
+CompHSD=HSD.test(gaov, "Punta",  main="")
+
+pander(CompHSD)
+```
+
+### Otras pruebas
+
+```{r}
+#Prueba de Duncan
+CompDun=duncan.test(gaov, "Punta", main="")
+CompDun
+```
+
+```{r}
+#Prueba LSD
+CompLSD=LSD.test(gaov, "Punta", p.adj="bonferroni", main="")
+CompLSD
+```
+
+```{r}
+#Prueba de Student-Newman-Keuls
+CompSNK=SNK.test(gaov, "Punta",  main="")
+CompSNK
+```
+
+
+```{r}
+#Prueba de Scheffe
+Compscheffe=scheffe.test(gaov, "Punta",  main="")
+Compscheffe
+```
+
+### Prueba de Dunnett
+
+Supongamos que la Punta 1 es el tratamiento tradicional o estándar y los otros tres son nuevas opciones.
+
+<b> La media de la dureza de las Puntas 1 y 4 son estadísticamente diferentes.</b>
+
+
+```{r}
+FPunta <- factor(Punta)
+Fgaov<-aov(Dureza ~ Placa + FPunta)
+
+#Prueba de Dunnett
+summary(glht(Fgaov, linfct=mcp(FPunta="Dunnett")))
+```
+
+
+
+

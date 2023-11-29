@@ -1,0 +1,17 @@
+rendimiento,abono,insecticida,semilla
+7,abono1,iinsecticida1,C
+8,abono1,iinsecticida2,D
+4,abono1,iinsecticida3,B
+3,abono1,iinsecticida4,A
+15,abono2,iinsecticida1,B
+16,abono2,iinsecticida2,A
+18,abono2,iinsecticida3,C
+23,abono2,iinsecticida4,D
+18,abono3,iinsecticida1,D
+12,abono3,iinsecticida2,C
+12,abono3,iinsecticida3,A
+10,abono3,iinsecticida4,B
+14,abono4,iinsecticida1,A
+13,abono4,iinsecticida2,B
+16,abono4,iinsecticida3,D
+14,abono4,iinsecticida4,C

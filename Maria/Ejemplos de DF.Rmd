@@ -1,0 +1,446 @@
+---
+title: "Ejemplo de un Diseño factorial"
+author: "María Guzmán Martínez, mguzman@uagro.mx"
+date: "27/11/2023"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    number_sections: yes
+    toc: yes
+  html_document:
+    number_sections: yes
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    code_folding: show
+  word_document:
+    toc: yes
+toc: yes
+linkcolor: blue
+citecolor: blue
+urlcolor: blue
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{fancyhdr}
+- \usepackage{amsmath, amsthm, amssymb}
+- \addcontentsline{toc}{section}{Índice de Tablas}
+- \usepackage[spanish]{babel}   # lang: es-ES
+- \decimalpoint   # Para colocar punto en lugar de coma en los n
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+                        echo =T, 
+                     	  message = FALSE,
+                        error = FALSE,
+                      	warning = FALSE,
+                    	  comment = " "
+                    	)
+
+opts <- options(knitr.kable.NA = "--") # Colocar dos -- en los NA en las tablas
+```
+
+
+```{r Librerías}
+
+library("ggplot2")    # ggplot
+library("ggforce")    # geom_sina
+
+library("tidyverse")  # %>%
+library("dplyr")      # mutate, select,...
+library("knitr")
+
+
+library("nortest")    # Pruebas: ad.test, cvm.test, pearson.test, sf.test, lillie.test
+
+library("agricolae")  # HSD.test, #skewness
+
+library(tinytex)  # Código latex
+```
+
+
+# Ejemplo 
+
+La avispa *Trichograma minutum* es un enemigo natural de varias plagas agrícolas. Por esta razón se desea conocer las condiciones optimas para producir esta avispa bajo condiciones de laboratorio. Se probó el efecto combinado de temperatura y las horas luz sobre la eclosión de huevecillos. Los niveles de temperatura que se probaron fueron $20°C$ u $25°C$ y los niveles de horas luz fueron 10 horas y 14 horas. Se utilizó un diseño experimental $2^2$ con 4 repeticiones. La unidad experimental utilizada fue un conjunto de 100 huevecillos, y la variable respuesta fue el número de huevecillos que eclosionaron. 
+
+Las preguntas planteadas del experimento son las siguientes:
+
+- ¿Existen diferencias entre las combinaciones de temperatura y horas luz?
+
+- ¿Bajo qué condiciones de horas luz y temperatura se produce una mayor eclosión de huevecillos?
+
+
+Los tratamientos a probar son:
+
+- $T_1$: 10 hr con 20°C
+
+- $T_2$: 10 hr con 25°C
+
+- $T_3$: 14 hr con 20°C
+
+- $T_4$: 14 hr con 25°C
+
+```{r}
+
+HE<-c(70,76,81,89,93,98,91,95,86,83,91,90,88,92,91,85)
+
+H.luz<-c("H.luz10","H.luz10","H.luz10","H.luz10",
+         "H.luz14","H.luz14","H.luz14","H.luz14",
+         "H.luz10","H.luz10","H.luz10","H.luz10",
+         "H.luz14","H.luz14","H.luz14","H.luz14")
+
+Temperatura<-c("Tem20","Tem20","Tem20","Tem20","Tem20","Tem20","Tem20","Tem20",
+               "Tem25","Tem25","Tem25","Tem25","Tem25","Tem25","Tem25","Tem25")
+
+Interaccion<-paste(H.luz,Temperatura,sep = "_")
+
+datos<-data.frame(H.luz,Temperatura,Interaccion,HE)
+
+class(datos)
+View(datos)
+```
+
+
+
+
+
+Gráficamente podemos observar que existen diferencias entre los tratamientos.
+
+```{r}
+ggplot(datos, aes(x=Temperatura, y=HE)) +
+  geom_boxplot(fill="cornflowerblue") + # Blox-plot
+  geom_sina()+      # Grafica los puntos
+  facet_wrap(~H.luz)+
+  stat_summary(fun.y=mean, geom="point", shape=20, size=6, color="purple", fill="purple") + # Agrega el punto de promedio
+  labs(x = "Temperaturas", y = "Número de huevocillos eclosionados")+
+  theme_bw()
+```
+
+
+```{r}
+ggplot(datos, aes(x=Interaccion, y=HE)) +
+  geom_boxplot(fill="cornflowerblue") + # Blox-plot
+  geom_sina()+      # Grafica los puntos
+  stat_summary(fun.y=mean, geom="point", shape=20, size=6, color="purple", fill="purple") + # Agrega el punto de promedio
+  labs(x = "Interacciones", y = "Número de huevocillos eclosionados")+
+  theme_bw()
+```
+
+
+
+
+Veamos un gráfico de dispersión de los datos es el siguiente:
+```{r}
+
+ggplot(datos, aes(x=Temperatura, y=HE)) +
+  geom_violin(fill="cornflowerblue") +  # Muestra la forma de la dispersión
+  geom_sina()+      # Coloca los puntos
+  facet_wrap(~ H.luz)+  # Separa por sitio
+
+  labs(x = "Tratamientos", y = "Glucosa")+
+  theme_bw()
+```
+
+
+```{r}
+ggplot(datos, aes(x=Interaccion, y=HE)) +
+  geom_violin(fill="cornflowerblue") + # Blox-plot
+  geom_sina()+      # Grafica los puntos
+  stat_summary(fun.y=mean, geom="point", shape=20, size=6, color="purple", fill="purple") + # Agrega el punto de promedio
+  labs(x = "Efecto de interacciones", y = "Número de huevocillos eclosionados")+
+  theme_bw()
+```
+
+
+
+## Anova
+
+De los resultados, hay efecto de las horas luz en la eclosión de los huevos (p-valor=0.0053), también hay efecto de la interacción de los efectos (p-valor=0.0164), solo en la temperatura no existe efecto sobre la eclosión de los huevos.
+
+
+Con un nivel de significancia del $\alpha=0.05$, las hipótesis que se están probando son las siguientes:
+
+Contraste de hipótesis del efecto principal del factor A (horas luz)
+
+$$
+H_{0}^A:\alpha_1=\alpha_2=0
+$$
+vs
+$$
+H_{1}^{A}: \text{algún } \alpha_i\neq0
+$$
+
+En este caso  se rechaza $H_{0}$, ya que $p-valor=0.0053<\alpha$, es decir, existen diferencias entre los dos niveles de las horas luz en la eclosión de los huevecillos de *Thichogramma minutum*.
+
+
+Contraste de hipótesis del efecto principal del factor B (Temperatura)
+
+$$
+H_{0}^{B}:\beta_1=\beta_2=0
+$$
+vs
+$$
+H_{1}^{B}: \text{algún } \beta_j\neq0
+$$
+En este caso no se rechaza $H_{0}$, ya que $p-valor=0.5223 >0.05$
+
+Contraste de hipótesis de la interacción BA
+
+$$
+H_{0}^{AB}: (\alpha\beta)_{11}=(\alpha\beta)_{12}=(\alpha\beta)_{21}=(\alpha\beta)_{22}=0
+$$
+vs
+$$
+H_{1}^{AB}: \text{algún } (\alpha\beta)_{ij}\neq0
+$$
+con $i=1,2$ y $j=1,2$
+
+En este caso  se rechaza $H_{0}$, ya que $p-valor=0.0164<0.5$. Es decir, existe efecto de las interacciónes en la variable respuesta, número de huevecillos eclosionados. 
+
+
+
+```{r}
+
+#?aov
+
+mod_aov<-aov(HE~H.luz+Temperatura+Interaccion, datos)
+summary(mod_aov)
+```
+
+
+
+Observación:
+
+|Significado        |       p-value    |
+|:------------------|:-----------------|
+|   ***             |   $[0, 0.001]$   |
+|    **             | $(0.001, 0.01]$  |
+|     *             |  $(0.01, 0.05]$  |
+|     .             |   $(0.05, 0.1]$  |
+|                   |     $(0.1, 1]$   |
+
+
+
+La función `anova()` muestra la tabla de la suma de cuadrados
+```{r}
+res_anova<-anova(mod_aov)
+res_anova
+
+kable(res_anova)
+```
+
+## Supuestos
+
+Juego de hipótesis:
+
+$H_0$: Los errores tienen distribución Normalidad.
+
+$H_A$: Los errores no tienen distribución Normalidad.
+
+Se rechaza $H_{0}$ si $p-valor<\alpha$
+
+Pruebas para verificar el supuesto de normalidad en los errores, $e_{ij}$.
+
+```{r}
+(prueba_shapiro<-shapiro.test(mod_aov$residuals)) # Shapiro-Wilk 
+
+(prueba_ad<-ad.test(mod_aov$residuals))     # Anderson-Darling
+
+(prueba_cvm<-cvm.test(mod_aov$residuals))     # Cramer-von Mises
+
+(prueba_lillie<-lillie.test(mod_aov$residuals)) # Kolmogorov-Smirnov
+
+(prueba_pearson<-pearson.test(mod_aov$residuals)) # Pearson chi-square
+
+(prueba_sf<-sf.test(mod_aov$residuals))      # Shapiro-Francia
+
+```
+
+Resumen:
+
+|Prueba estadística  | Valor del estadístico de prueba   | p-valor                   | 
+|--------------------|-----------------------------------|---------------------------|
+|Shapiro-Wilk        | `r round(prueba_shapiro$statistic,3)`      |`r round(prueba_shapiro$p.value,3)` |
+|Anderson-Darling    | `r round(prueba_ad$statistic,3)`           |`r round(prueba_ad$p.value,3)`      |
+|Cramer-von Mises    | `r round(prueba_cvm$statistic,3)`          |`r round(prueba_cvm$p.value,3)`     |
+|Kolmogorov-Smirnov  | `r round(prueba_lillie$statistic,3)`       |`r round(prueba_lillie$p.value,3)`  |
+|Pearson chi-square  | `r round(prueba_pearson$statistic,3)`      |`r round(prueba_pearson$p.value,3)` |
+|Shapiro-Francia     | `r round(prueba_sf$statistic,3)`           |`r round(prueba_sf$p.value,3)`      |
+
+De acuerdo  con los resultados anteriores, se cumple el supuesto de normalidad en los errores.
+
+
+Para distribuciones simétricas con tamaños de muestra pequeños, los investigadores pueden elegir alguna de las siguientes pruebas de normalidad 
+
+  title={A comparison of various tests of normality},
+  author={Yazici, Berna and Yolacan, Senay},
+
+- Kolmogorov-Smirnov,
+
+- Kolmogorov-Smirnov modificada 
+
+- Anderson-Darling .
+
+
+La función **skewness**, mide la falta de simetría en un conjunto de datos.
+```{r}
+skewness(mod_aov$residuals) # mide la falta de simetría
+```
+
+
+Gráficamente, se puede observar que se cumple el supuesto de normalidad.
+```{r}
+hist(mod_aov$residuals, main = "Histograma de los residuales", xlab = " ", col="blue")
+```
+
+
+
+
+
+Juego de hipótesis:
+
+$H_0$: Los errores tienen varianza constante
+
+$H_A$: Los errores no tienen varianza constante.
+
+```{r}
+bartlett.test(mod_aov$residuals, datos$H.luz)   # Prueba CONFIABLE SI HAY NORMALIDAD
+
+bartlett.test(mod_aov$residuals, datos$Temperatura)   # Prueba CONFIABLE SI HAY NORMALIDAD
+
+```
+De acuerdo con la prueba de Bartlett, se cumple el supuesto de normalidad en los errores, ya que se tiene un $p-valor=0.0806$ en los niveles de las horas luz, y un $p-valor=0.1575$ para los niveles de las temperaturas.
+
+
+Prueba de aleatoriedad:
+
+$H_0$: Los datos se produjeron de forma aleatoria.
+
+$H_a$: Los datos no se produjeron de forma aleatoria.
+
+Se rechaza $H_0$ si el $p-valor<\alpha$
+
+```{r, eval=FALSE}
+
+library(remotes)
+#install_github("debinqiu/snpar")
+
+library(snpar)
+
+runs.test(mod_aov$residuals)  #  prueba de rachas
+```
+
+## Comparaciones múltiples
+
+### Factor A
+```{r}
+comp_tukey_Fac.A<-HSD.test(mod_aov, "H.luz", group=TRUE)
+comp_tukey_Fac.A
+```
+
+```{r}
+knitr::kable(comp_tukey_Fac.A$means, 
+             digits = 3,
+             caption = "Estadísticas")
+
+```
+
+```{r}
+kable(comp_tukey_Fac.A$groups, 
+      digits = 3,
+      caption = "Comparaciones mútiples")
+```
+
+```{r}
+
+#--- Código para ordenar la aparición de los niveles en el gráfico
+orden_trat<-c("H.luz14","H.luz10")
+
+
+res_compa.dosis<-data.frame( Trat=rownames(comp_tukey_Fac.A$groups),
+                             Promedio=comp_tukey_Fac.A$groups$HE,
+                             Grupo=comp_tukey_Fac.A$groups$groups,
+                             E.Estandar=sort(comp_tukey_Fac.A$means$std) 
+                          )
+
+res_compa.dosis<-res_compa.dosis%>%
+                 mutate(Trat=factor(Trat,levels =orden_trat))
+
+res_compa.dosis
+```
+
+
+```{r,fig.width=10,fig.height=8}
+ggplot(res_compa.dosis, aes(x = Trat, y = Promedio)) + 
+  geom_bar(stat = "identity", aes(fill = Trat), show.legend = FALSE) +
+  geom_errorbar(aes(ymin = Promedio - E.Estandar, ymax = Promedio + E.Estandar), width = 0.2) +
+  labs(x = " ", y = "") +
+  geom_text(aes(label = Grupo, y = Promedio + E.Estandar), vjust = -0.5) +
+  ylim(0,100)+
+  theme_gray()+
+  theme_bw()+
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle =60,h=1))
+
+```
+
+## Interacción AB
+
+```{r}
+comp_tukey_Fac.AB<-HSD.test(mod_aov, "Interaccion", group=TRUE)
+comp_tukey_Fac.AB
+```
+```{r}
+kable(comp_tukey_Fac.AB$means, digits = 3,caption = "Estadísticas")
+```
+
+```{r}
+
+#--- Código para ordenar la aparición de los niveles en el gráfico
+orden_trat<-c("H.luz14_Tem20","H.luz14_Tem25","H.luz10_Tem25","H.luz10_Tem20")
+
+
+res_compa.dosis<-data.frame( Trat=rownames(comp_tukey_Fac.AB$groups),
+                             Promedio=comp_tukey_Fac.AB$groups$HE,
+                             Grupo=comp_tukey_Fac.AB$groups$groups,
+                             E.Estandar=sort(comp_tukey_Fac.AB$means$std) 
+                          )
+
+res_compa.dosis<-res_compa.dosis%>%
+                 mutate(Trat=factor(Trat,levels =orden_trat))
+
+res_compa.dosis
+```
+
+
+```{r,fig.width=10,fig.height=8}
+ggplot(res_compa.dosis, aes(x = Trat, y = Promedio)) + 
+  geom_bar(stat = "identity", aes(fill = Trat), show.legend = FALSE) +
+  geom_errorbar(aes(ymin = Promedio - E.Estandar, ymax = Promedio + E.Estandar), width = 0.2) +
+  labs(x = " ", y = "") +
+  geom_text(aes(label = Grupo, y = Promedio + E.Estandar), vjust = -0.5) +
+  ylim(0,100)+
+  theme_gray()+
+  theme_bw()+
+  theme(text = element_text(size = 10),
+        axis.text.x = element_text(angle =60,h=1))
+
+```
+
+
+
+```{r}
+kable(comp_tukey_Fac.AB$groups, digits = 3,caption = "Comparaciones mútiples")
+```
+
+
+Por lo tanto, las mejores combinaciones de horas luz y temperatura para una buena eclosión de huevecillos de *Trichogramma minutum* son 14 horas luz y 20°c, 14 horas luz y 25° C y 10 horas luz y 25° C.
+
+
+
+
+
+

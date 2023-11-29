@@ -1,0 +1,268 @@
+---
+title: "Elaboracion de un reporte"
+author: "FGJ"
+date: "5/10/2021"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  comment="->",
+  echo=T,  # se muestra el código R en la salida
+  error = F,
+  warning = F,
+  message = F)
+```
+
+# Librerias necesarias
+
+```{r}
+library("rmarkdown")
+library(ggfortify)
+library(knitr)
+library(ggplot2)
+library("ggpubr")
+library(multcomp)   #Dunett
+library(agricolae)  #SNK, DHS(Tukey), Duncan, LSD
+library(faraway)    #datos
+library(car)        #Levene, Bartlett
+library(nortest)    #Pruebas de normalidad
+library(pander)     #Tablas
+```
+
+
+# Diseño en bloques completos al azar
+
+El experimento compara 4 procesos de producción de penicilina (tratamientos): A, B, C y D. El material, licor de maíz, es bastante variable y únicamente puede ser hecho en mezclas suficientes para cuatro corridas. Así, un diseño en bloques al azar es sugerido por la naturaleza de las unidades experimentales. Los datos son
+
+```{r}
+data(penicillin) 
+attach(penicillin)
+penicillin
+Produccion=yield   
+Tratamiento=treat    
+Mezcla=blend
+```
+
+## Analisis exploratorio
+
+```{r}
+MProduccion   = mean(Produccion)
+round(MProduccion, 2)
+VProduccion=var(Produccion)
+round(VProduccion, 2)
+
+MTratamiento=tapply(Produccion, Tratamiento, mean)
+round(MTratamiento, 2)
+VTratamiento= tapply(Produccion, Tratamiento, var)
+round(VTratamiento, 5)
+MMezcla = tapply(Produccion, Mezcla, mean)
+round(MMezcla, 2)
+VMezcla = tapply(Produccion, Mezcla, var)
+round(VMezcla, 2)
+```
+
+```{r}
+g1<-ggplot(penicillin, aes(x=Tratamiento, 
+            y=Produccion, fill=Tratamiento))+ 
+    geom_boxplot(alpha=0.3) +theme(legend.position="none") +
+    scale_fill_brewer(palette="Dark2")+theme_bw()
+
+
+g2<-ggplot(penicillin, aes(x=Mezcla, y=Produccion, fill=Mezcla)) + 
+    geom_boxplot(alpha=0.3) +
+    theme(legend.position="none") +
+    scale_fill_brewer(palette="BuGn")+theme_bw()
+
+ggarrange(g1, g2 + rremove("x.text"), 
+          labels = c("A", "B"),
+         ncol = 2, nrow = 1)
+```
+
+```{r}
+interaction.plot(Tratamiento, Mezcla, Produccion, col =1:4,  main="Produccion de penicilina")
+interaction.plot(Mezcla, Tratamiento, Produccion, col =2:5,  main="Produccion de penicilina")
+dev.off()
+
+```
+
+```{r}
+#Una grafica de las medias de los factores estudiados
+plot.design(Produccion ~ Mezcla+Tratamiento, col = 2:6,data=penicillin)
+
+# Aleatorización 
+# 4 treatments and 5 blocks
+trt<-c("A","B","C","D")
+outdesign <-design.rcbd(trt, 5, serie=1, seed = 986,kinds = "Wichmann-Hill") # seed = 986
+outdesign
+```
+
+# Reporte
+La media general de la producción de penicilina fue 86 U con una varianza muestral de 29.47 $U^2$. La mezcla de licor de maíz A tuvo media de la producción de penicilina de 84 U, la mezcla B de 85 U, la mezcla C de 89 U y la mezcla D de 86 U.
+
+|	Mezcla |	Media        |   Varianza    | 
+|-------|----------------|---------------|
+| 	A	 	|   84           |   17.0        | 
+| 	B	 	|   85           |   35.5        | 
+| 	C	 	|   89           |   39.5        | 
+| 	D	 	|   86           |   30.5        |
+
+
+## Postulación del modelo del modelo
+
+#  Modelo estadístico (Diseño en Bloques al Azar Completo)
+* La variable respuesta es la producción de penicilina
+* Solo hay un Factor: Proceso de producción que tiene cuatro niveles (A, B, C, D).
+* Son cinco Bloques que corresponden a las Mezclas de licor de maíz que son muy variables (gradiente de variación).
+* El modelo es balanceado pues el numero de repeticiones es el mismo. 
+* La aleatorización es importante!!! Como se hizo?
+
+$$
+\begin{eqnarray*}
+Y_{ij}&=& \mu + \tau_i + \beta_j + \varepsilon_{ij} \quad \; \varepsilon _{ij}\sim  IID N(0,\sigma^{2})\\
+i &=& 1,2,3,4; \quad j=1,2,3,4,5. 
+\end{eqnarray*}
+$$
+
+donde $Y_{ij}$ es la producción de penicilina en el proceso $i$ y mezcla $j$; \mu$ es la media general la producción de penicilina, $\mu_{i}$ es la media de la producción de penicilina del proceso $i, \tau_{i}$ es el efecto del proceso $i$ en la producción de penicilina, $\beta_j $ es el efecto de la mezcla $j$ en la producción de penicilina y $\varepsilon_{i j}$ son errores aleatorios. El modelo supone que los errores aleatorios son independientes y tienen distribución normal con media cero y varianza constante, $\sigma^{2}$. Las hipótesis a probar son
+
++ $\mathrm{H}_{0}$ : No hay efecto del proceso en la producción de penicilina.
+
+$$
+H_{0}: \tau_{1}=\tau_{2}=\cdots=\tau_{4}=0
+$$
+
++ $\mathrm{H}_{1}$ : Hay efecto hay efecto del proceso en la producción de penicilina.
+
+$$
+H_{1}: \text { Al menos un } \tau_{i} \neq 0
+$$
+Que son equivalentes a
+
++ $\mathrm{H}_{0}$ : Las medias de la producción de penicilina en los niveles de la proceso  son iguales.
+
+$$
+H_{0}: \mu_{1}=\mu_{2}=\cdots=\mu_{4}
+$$
+
++ $\mathrm{H}_{0}$ : Las medias de la producción de penicilina en los niveles de la proceso NO son iguales.
+
+$$
+H_{1}: \text { Al menos una } \mu_{i} \neq 0
+$$
+
+## Ajuste del modelo
+
+Los parámetros se estiman usando el paquete estadístico R. Implícitamente se usa el Método de Mínimos Cuadrados o el de Máxima Verosimilitud.
+
+Se usa la función lm (linear model) que busca explicar la Produccion con los efectos principales de Mezcla y Tratamiento. El origen de los datos se da con **data=penicillin**. 
+
+```{r}
+g <- lm(Produccion ~ Mezcla+Tratamiento, data=penicillin)
+pander(summary(g))    #  summary table
+pander(anova(g))    #  anova table
+```
+Antes de interpretar la salida del ANOVA se deben verificar el cumplimiento de los supuestos del modelo: Independencia, Normalidad y Varianza constante.
+
+## Verificación de los supuestos del modelo BCA 
+
+### Independencia de los errores 
+
+* La independencia se construye desde el diseño y realización del experimento. 
+Se cumple el supuesto de Independencia de los errores porque **el investigador es bueno** y los puntos no forman algún patrón, es decir, están distribuidos aleatoriamente. 
+
+###  Normalidad de los errores 
+
+* Hipótesis
+ i) $\mathrm{H}_0$ Los errores tienen distribución Normal      
+ ii) $\mathrm{H}_{1}$ Los errores no tienen distribución Normal 
+
+* Gráfica Normal cuantil. 
+  + Hay distribución Normal si la recta tiene una pendiente de 45 grados y los puntos caen cerca a la diagonal en el centro, aunque en los extremos se separen un poco
+  + No hay distribución Normal si la recta NO tiene una pendiente de 45 grados o los puntos se separan de la diagonal.
+
+```{r}
+qqnorm(g$res,xlab="Cuantiles teóriicos", ylab="Residuales estandarizados",main="")
+qqline(g$res, col="blue")
+
+```
+
+* Pruebas de hipótesis. Distribución Normal
+
+ i) $\mathrm{H}_0$ Los errores tienen Distribución Normal
+ ii) $\mathrm{H}_{1}$ Los errores NO tienen Distribución Normal
+
+```{r}
+# H0: Los errores tienen DN vs 
+# H1: Los errores NO tienen DN
+ad.test(g$res)
+shapiro.test (g$res)
+cvm.test(g$res)
+lillie.test(g$res)
+pearson.test(g$res)
+sf.test(g$res)
+```
+
+**Todos los valores p son mayores a 0.05**
+
+El modelo ajustado para la producción de penicilina cumple el supuesto de  normalidad de los errores (Anderson-Darling p=0.62,  Shapiro-Wilk p=0.37,  Cramer-von Mises p=0.75,  Kolmogorov-Smirnov p=0.71,  Pearson chi-square p=0.66, Shapiro Francia p=0.59) 
+
+### Homegeneidad de varianzas
+
+* Hipótesis
+ i) $\mathrm{H}_0$ Las varianzas de la producción de penicilina de los procesos son iguales
+ ii) $\mathrm{H}_{1}$ Las varianzas de la producción de penicilina de los procesos no son iguales
+
+```{r}
+plot(g$fit,g$res,xlab="Valores esperados",ylab="Residuales",main="")
+# plot(jitter(g$fit),g$res,xlab="Fitted",ylab="Residuals",main=" ")
+```
+
+
+```{r}
+# H0:Las varianzas de la producción de penicilina de los procesos son iguales vs
+# H1:Las varianzas de la producción de penicilina de los procesos NO son iguales
+leveneTest(g$res,Tratamiento)
+bartlett.test(g$res,Tratamiento)
+fligner.test(g$res,Tratamiento)
+```
+
+**Todos los valores p son mayores a 0.05**
+
+* No existe evidencia con un $\alpha=.05$ que indique que las varianzas de la producción de penicilina de los procesos sean diferentes (Levene: $F_{3,16}=0.77, \; p=0.53$).
+* Las varianzas de la producción de penicilina de los procesos son estadísticamente iguales (Levene:$F_{3,16}=0.77, \; p=0.53$).
+
+
+```{r}
+layout(matrix(1:4,2,2))
+plot(g)
+```
+
+# Reporte
+
+El modelo ajustado para la producción de penicilina, cumple los supuestos de Independencia,  normalidad (Anderson-Darling p=0.62,  Shapiro-Wilk p=0.37,  Cramer-von Mises p=0.75,  Kolmogorov-Smirnov p=0.71,  Pearson chi-square p=0.66, Shapiro Francia p=0.59) y homogeneidad de varianza (Bartlett p=2.25, Levene p=0.53, Fligner-Killeen p=0.67)  porque todos los valores p son mayores a 0.05. 
+
+## interpretación del  modelo ajustado
+
+* Factor Proceso No se rechaza $\mathrm{H}_{0}: µ_{A}=µ_{B}=µ_{C}=µ_{D}$ ($F_{(3,12)} =1.24, \; p = 0.34$)
+* Las medias de producción de penicilina de los procesos son estadísticamente iguales ($F_{(3,12)} =1.24, \; p = 0.34$)
+* No hay efecto de los procesos en la producción de penicilina ($F_{(3,12)} =1.24, \; p = 0.34$).
+* Bloques Mezcla Se rechaza $\mathrm{H}_{0}: \beta_{1}=\beta_{2}=\beta_{3}=\beta_{4}=\beta_{5}$  $(F_{(4,12)} =3.50, \; p=0.04)$
+* Las medias de la producción de penicilina de las mezclas de licor son diferentes  (Sorpresa? Es correcto?).
+
+
+```{r}
+anova(g);           
+```
+
+Coeficiente de determinación}  El 60\% de la variación en la produccion de penicilina es explicada por el modelo ($R^{2}= 0.5964$).
+
+```{r}
+  summary(g)
+```
+
+**Las comparaciones múltiples no deben hacerse si no se rechazó $H_0$. 
+
+
+
+

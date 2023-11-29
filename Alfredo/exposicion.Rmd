@@ -1,0 +1,323 @@
+---
+title: "Untitled"
+author: "Alfredo Alarcon Vargas"
+date: "2023-11-23"
+output:
+  word_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    df_print: paged
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{fancyhdr}
+- \usepackage{amssymb,amsmath, amsthm,amsfonts}
+- \usepackage[spanish]{babel}
+- \usepackage[utf8]{inputenc}
+- \usepackage{setspace,verbatim,listings}
+- \usepackage{booktabs,multirow,array,float,longtable}
+- \decimalpoint
+link-citations: yes
+linkcolor: blue
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      comment = "",
+                      warning = FALSE,
+                      error = FALSE,
+                      message = FALSE
+                      )
+```
+
+
+```{r}
+
+library(multcomp)     #Dunett y Tukey
+library(agricolae)    #SNK, DHS(Tukey), Duncan, LSD
+library(faraway)      #Los datos est?n aqu?
+library(car)          #Levene, Bartlett
+library(nortest)
+
+#install_github("haozhu233/kableExtra")
+
+library(kableExtra)
+```
+
+
+```{r}
+setwd("C:/Users/AAVA/Documents/DiseñodeExperimentos")
+cosechaTri <- read.csv("SemillasDCL.csv")
+
+attach(cosechaTri); cosechaTri
+
+Tsemilla    <- factor(semilla) # factor de interes            
+abono       <- factor(abono)      #fila      
+insecticida <- factor(insecticida) # columna
+
+```
+
+```{r}
+Bdt<-cosechaTri
+Bdt %>%
+  kbl() %>%
+  kable_classic_2(full_width = F)
+```
+
+
+
+
+
+```{r}
+resumn<-summary(cosechaTri)
+resumn %>%
+  kbl() %>%
+  kable_classic_2(full_width = F)
+```
+
+```{r}
+MCG=mean(rendimiento); MCG
+```
+
+```{r}
+VCG=var(rendimiento); VCG
+```
+
+```{r}
+MTsemilla = tapply(rendimiento, Tsemilla, mean); MTsemilla
+```
+
+```{r}
+Minsecticida = tapply(rendimiento, insecticida, mean); Minsecticida
+```
+
+```{r}
+Mabono = tapply(rendimiento, abono, mean); Mabono
+```
+
+
+```{r}
+VTasa = tapply(rendimiento, Tsemilla, var); VTasa
+Vinsecticida = tapply(rendimiento, insecticida, var); Vinsecticida
+Vabono = tapply(rendimiento, abono, var); Vabono
+
+```
+
+
+```{r}
+plot(rendimiento ~ Tsemilla, ylab="cosecha de grano", xlab="Tipo de semilla", main="", col=c("red","yellow","orange","gold"))
+
+```
+
+
+```{r}
+plot(rendimiento ~ insecticida, ylab="cosecha de grano", xlab="variedad de insecticida", main="", col=c("blue","green","cyan","lightblue"))
+```
+
+
+
+```{r}
+plot(rendimiento ~ abono, ylab="cosecha de grano", xlab="abono", main="",  col=c("pink","magenta","purple","violet"))
+```
+
+
+
+```{r}
+interaction.plot(insecticida, abono, rendimiento, col=c("red","blue","orange","gold"), ylab="cosecha de grano")
+interaction.plot(Tsemilla, abono, rendimiento, col=c("red","blue","orange","gold"), ylab="cosecha de grano")
+
+```
+
+
+Ajuste del modelo CL  
+```{r}
+g <- lm(rendimiento ~ Tsemilla  + insecticida  + abono)
+```
+
+```{r}
+
+anova(g)
+```
+
+```{r}
+summary(g)
+```
+
+
+```{r}
+modelo <- aov(rendimiento ~ Tsemilla + insecticida + abono)
+# Medias 
+model.tables(modelo,"mean")
+```
+
+
+```{r}
+#layout(matrix (1:4, 2,2))
+plot(g, main="")
+```
+
+
+```{r}
+shapiro.test (g$res)        # n<50
+   # library(tseries)
+# Todos los valores p son mayores a 0.05
+```
+
+```{r}
+nortest::lillie.test(g$res) # n>=50    
+ 
+```
+
+```{r}
+nortest::ad.test(g$res)
+
+```
+
+```{r}
+nortest::cvm.test(g$res)
+
+```
+
+```{r}
+nortest::pearson.test(g$res)    
+
+```
+
+```{r}
+nortest::sf.test(g$res)       
+
+```
+
+
+```{r}
+#tseries::jarque.bera.test(g$res)
+```
+
+
+
+
+
+```{r}
+# Pruebas de hipótesis. Homegeneidad de varianzas
+# H0:Las varianzas de las Resistencias de los Proveedores son iguales vs
+# H1:Las varianzas de las Resistencias de los Proveedores NO son iguales
+
+stats::bartlett.test(g$res,Tsemilla)
+
+```
+
+
+```{r}
+car::leveneTest(g$res,Tsemilla)
+
+```
+
+
+```{r}
+stats::fligner.test(g$res,Tsemilla)
+```
+
+
+#__________________________________________________________#
+#              Comparaciones multiples                     #
+#__________________________________________________________#
+
+```{r}
+fabono <- factor(abono)
+fTsemilla <- factor(Tsemilla)
+finsecticida  <- factor(insecticida)
+```
+
+```{r}
+gaov<-aov(rendimiento ~ fTsemilla + finsecticida + fabono, cosechaTri)
+```
+
+```{r}
+CompHSD=HSD.test(gaov, "fTsemilla",  main="")   
+CompHSD
+```
+
+```{r}
+CompDun=duncan.test(gaov, "fTsemilla",  main="")
+CompDun
+
+```
+
+
+```{r}
+
+CompLSD=LSD.test(gaov, "fTsemilla", p.adj="bonferroni",  main="Resistencia")
+CompLSD
+```
+
+```{r}
+CompSNK=SNK.test(gaov, "fTsemilla",   main="")
+CompSNK
+
+```
+
+```{r}
+Compscheffe=scheffe.test(gaov, "fTsemilla",   main="")
+Compscheffe
+```
+
+
+
+
+
+```{r}
+GlhtTky=glht(gaov, linfct=mcp(fTsemilla ="Tukey"))
+tuk.cld2 <- cld(GlhtTky)
+plot(tuk.cld2 , col=c("green", "pink", "red", "blue"))
+points(rendimiento ~  fTsemilla, cex = .5, col = "darkred")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
